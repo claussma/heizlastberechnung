@@ -116,30 +116,26 @@ class House:
         self.annual_transmission_heat_loss = np.sum([component['area']*component['structure'].calculate_u_value()*deltaT*hours for component in self.components])/1000.0
 
 
-    def calc_annual_transmission_heat_loss_timeseries(self, Tinner = 20.0, hours=24*365) -> float:
+    def calc_annual_transmission_heat_loss_timeseries(self, climatedata: pd.DataFrame, Tinner = 20.0, T_heating=17.0) -> float:
+        """
+        
+        T_heating: Bis zu dieser Temperatur wird geheizt.
+        
+        """
 
+        transmission_heat_loss = {}
 
-        innentemperatur = 20  # Konstante Innentemperatur in °C
-        aussentemperatur = np.random.normal(10, 5, hours)  # Beispielhafte Außentemperatur in °C
+        airtemp = climatedata['Tair'].copy()
+        airtemp[airtemp>T_heating] = np.NaN
 
-        # U-Werte und Flächen
-        U_wand = 0.3  # W/m²K
-        A_wand = 500  # m²
-        U_dach = 1.0  # W/m²K
-        A_dach = 100  # m²
+        for component in self.components:
 
-        # Berechnung der stündlichen Verluste
-        verluste_wand = U_wand * A_wand * (innentemperatur - aussentemperatur)
-        verluste_dach = U_dach * A_dach * (innentemperatur - aussentemperatur)
+            U_component = component['structure'].calculate_u_value()
+            A_component = component['area']
 
-        # Gesamte jährliche Verluste
-        gesamte_verluste = sum(verluste_wand + verluste_dach)  # in Wh
+            transmission_heat_loss[component['name']] = (Tinner - airtemp).mul(U_component).mul(A_component)
 
-        # Umwandlung in kWh
-        gesamte_verluste_kwh = gesamte_verluste / 1000
-
-        print(f"Der jährliche Energieverlust beträgt {gesamte_verluste_kwh:.2f} kWh")
-
+        self.transmission_heat_loss_ts = pd.concat(transmission_heat_loss).unstack(level=0)
 
 
     def info(self):
