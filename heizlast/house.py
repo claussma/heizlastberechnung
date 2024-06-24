@@ -2,7 +2,9 @@ import pandas as pd
 import numpy as np
 
 class Layer:
-    def __init__(self, thickness: float, thermal_conductivity: float, name:str):
+    def __init__(self, name:str, thickness: float, 
+                thermal_conductivity: float = None, 
+                is_air: bool = False):
         """
         Initialisiert eine Schicht.
         :param thickness: Dicke der Schicht in Metern.
@@ -10,13 +12,18 @@ class Layer:
         """
         self.thickness = thickness
         self.thermal_conductivity = thermal_conductivity
+        self.is_air = is_air
     
     def r_value(self) -> float:
         """
         Berechnet den R-Wert der Schicht.
         :return: R-Wert in (m²*K)/W.
         """
-        return self.thickness / self.thermal_conductivity
+        if self.is_air:
+            air_thermal_conductivity = 0.025  # W/(m*K), stehende Luft
+            return self.thickness / air_thermal_conductivity
+        else:
+            return self.thickness / self.thermal_conductivity
 
 class Wall:
     def __init__(self, name):
