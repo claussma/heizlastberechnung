@@ -3,7 +3,7 @@ _ = pl.Config.set_tbl_hide_dataframe_shape(True)
 from wetterdienst import Settings
 from wetterdienst.provider.dwd.observation import DwdObservationRequest, DwdObservationDataset, DwdObservationPeriod, DwdObservationResolution
 import datetime as dt
-
+from wetterdienst.metadata.parameter import Parameter
 
 class WeatherData():
     def __init__(self, station_id: int = 1048, nyears=2) -> None:
@@ -18,6 +18,7 @@ class WeatherData():
     def _rename_columns(self):
 
         self.data.rename(columns={'temperature_air': 'Tair'}, inplace=True)
+        self.data.rename(columns={'solar': 'radiation'}, inplace=True)
 
 
 
@@ -25,6 +26,9 @@ class WeatherData():
 
         # Kelvin to °C
         self.data['Tair'] = self.data['Tair'] - 273.15
+        
+        # to kWh/m^2
+        self.data['radiation'] = self.data['radiation'].mul(2.778).div(100*100).div(1000) # J/cm^2 in Wh/m^2 mit 1 W=1 J/s
 
 
     def load_data(self):
@@ -35,7 +39,7 @@ class WeatherData():
             ts_si_units=True  # convert values to SI units
         )
         request = DwdObservationRequest(
-            parameter=["temperature_air_mean_200", "solar"],
+            parameter=['temperature_air_mean_200', 'radiation_global'],
             resolution=DwdObservationResolution.HOURLY,
             start_date=self.start_date,
             end_date=self.end_date, 
