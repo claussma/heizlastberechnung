@@ -52,19 +52,7 @@ class Layer:
 
         self.U = 1/self.R
     
-    def heat_transfer_resistance(self) -> float:
-        """
-        Berechnet des Wärmeübergangswiderstand in Abhängigkeit der Strömungsgeschinwidkeit
-        und Oberflä#chentemperatur verursacht durch Konvektion und Strahlung an der 
-        Bauteiloberfläche
-        :return: Rs in (m²*K)/W.
-        """
 
-
-        a = 12*np.sqrt(v + 4*simga*epsilon(273 + theta)**3)
-        
-        return 1/a
-    
     def _run(self):
 
         self._calc_r_value()
@@ -76,13 +64,16 @@ class Layer:
 
 class Wall:
     def __init__(self, name, area, 
-                 thermal_resistance_inside:float = 0.13, thermal_resistance_outside:float = 0.04):
+                 r: float = 1.0,
+                 thermal_resistance_inside:float = 0.13, 
+                 thermal_resistance_outside:float = 0.04):
         """
         Initialisiert eine Wand mit einer Liste von Schichten.
         """
         self.layers = []
         self.name = name
         self.area = area
+        self.r = r
 
         self.thermal_resistance_inside = thermal_resistance_inside
         self.thermal_resistance_outside = thermal_resistance_outside
@@ -151,7 +142,6 @@ class Wall:
                 'lamda': layer.thermal_conductivity,
                 'R-Value': layer.R,
                 'U-Value': layer.U,
-                'thickness': layer.thickness
                 } for layer in self.layers]
         
         df = pd.DataFrame(data)
@@ -241,6 +231,7 @@ class Wall:
 
 class Roof(Wall):
     def __init__(self, name, area, 
+                 r: float = 1.0,
                  thermal_resistance_inside:float = 0.13, thermal_resistance_outside:float = 0.04):
         """
         Initialisiert eine Wand mit einer Liste von Schichten.
@@ -248,9 +239,89 @@ class Roof(Wall):
         self.layers = []
         self.name = name
         self.area = area
+        self.r = r
 
         self.thermal_resistance_inside = thermal_resistance_inside
         self.thermal_resistance_outside = thermal_resistance_outside
+
+class Ceiling(Wall):
+    def __init__(self, name, area, 
+                 r: float = 1.0,
+                 thermal_resistance_inside:float = 0.13, thermal_resistance_outside:float = 0.04):
+        """
+        Initialisiert eine Wand mit einer Liste von Schichten.
+        """
+        self.layers = []
+        self.name = name
+        self.area = area
+        self.r = r
+
+
+        self.thermal_resistance_inside = thermal_resistance_inside
+        self.thermal_resistance_outside = thermal_resistance_outside
+
+class Window(Wall):
+    def __init__(self, name, area, thermal_conductivity: float, number:int,
+                 r: float = 1.0,
+                 thermal_resistance_inside:float = 0.13, thermal_resistance_outside:float = 0.04):
+        """
+        Initialisiert eine Wand mit einer Liste von Schichten.
+        """
+        
+        self.name = name
+        self.area = area
+        self.number = number
+        self.r = r
+
+        self.U = thermal_conductivity
+
+        self.thermal_resistance_inside = thermal_resistance_inside
+        self.thermal_resistance_outside = thermal_resistance_outside
+
+    def add_layers(self, layers: list):
+        """
+        Fügt der Wand mehrere Schichten hinzu.
+        :param layers: Eine Liste von Instanzen der Klasse Layer.
+        """
+        
+        pass
+    
+    def _calculate_R_value(self):
+        """
+        Berechnet den R-Wert der Wand in W/(m²*K).
+        
+        """
+        self.R = 1/self.U
+
+        print('R-Wert der Wand:', self.R)
+
+    def _calculate_U_value(self):
+        """
+        Berechnet den U-Wert der Wand in (m²*K)/W.
+        """
+        
+        pass
+        
+    def _calculate_thickness(self):
+        """
+        Berechnet die Gesamtdicke des Bauteils
+        :return: Dicke in mm
+        """
+        self.thickness = 0.0
+
+    def _calc_info(self):
+
+        data = [{'name': self.name, 
+                'thickness': None, 
+                'lamda': self.U,
+                'R-Value': self.R,
+                'U-Value': self.U,
+                }]
+        
+        df = pd.DataFrame(data)
+        
+        df = df.set_index('name')
+        self.info = df
 
 class House:
     def __init__(self, 
@@ -271,6 +342,7 @@ class House:
 
     
     def add_wall(self, name:str, area: float, layers_info: list, 
+                 r: float = 1.0,
                 thermal_resistance_inside:float = 0.13, 
                 thermal_resistance_outside:float = 0.04):
         """
@@ -279,7 +351,7 @@ class House:
         :param layers_info: Eine Liste von Dictionaries, die die Schichten beschreiben.
         """
         layers = [Layer(**info) for info in layers_info]
-        wall = Wall(name=name, area=area)
+        wall = Wall(name=name, area=area, r=r)
         wall.add_layers(layers)
         wall.set_thermal_resistance_inside(thermal_resistance_inside)
         wall.set_thermal_resistance_outside(thermal_resistance_outside)
@@ -289,7 +361,26 @@ class House:
         print('add wall')
         print(self.components)
     
-    def add_roof(self, area: float, layers_info: list, 
+    def add_ceiling(self, name:str, area: float, layers_info: list, r: float = 1.0,
+                thermal_resistance_inside:float = 0.13, 
+                thermal_resistance_outside:float = 0.04):
+        """
+        Fügt dem Decke dem Haus hibzu
+        :param area: Fläche der Decke in Quadratmetern.
+        :param layers_info: Eine Liste von Dictionaries, die die Schichten beschreiben.
+        """
+        
+        layers = [Layer(**info) for info in layers_info]
+        roof = Ceiling(name=name, area=area, r=r)
+        roof.add_layers(layers)
+        roof.set_thermal_resistance_inside(thermal_resistance_inside)
+        roof.set_thermal_resistance_outside(thermal_resistance_outside)
+        roof.run()
+        
+        self.components.append(roof)
+
+    def add_roof(self, name: str, area: float, layers_info: list, 
+                 r: float = 1.0,
                 thermal_resistance_inside:float = 0.13, 
                 thermal_resistance_outside:float = 0.04):
         """
@@ -297,15 +388,38 @@ class House:
         :param area: Fläche der Wand in Quadratmetern.
         :param layers_info: Eine Liste von Dictionaries, die die Schichten beschreiben.
         """
-        name = "Dach"
         layers = [Layer(**info) for info in layers_info]
-        roof = Roof(name=name, area=area)
+        roof = Roof(name=name, area=area, r=r)
         roof.add_layers(layers)
         roof.set_thermal_resistance_inside(thermal_resistance_inside)
         roof.set_thermal_resistance_outside(thermal_resistance_outside)
         roof.run()
         
         self.components.append(roof)
+
+    def add_window(self, name: str, area: float, 
+                   number: int,
+                   thermal_conductivity: float,
+                    r: float = 1.0,
+                    thermal_resistance_inside:float = 0.13, 
+                    thermal_resistance_outside:float = 0.04
+                    ):
+        """
+        Fügt dem Haus eine Wand hinzu.
+        :param area: Fläche der Wand in Quadratmetern.
+        :param layers_info: Eine Liste von Dictionaries, die die Schichten beschreiben.
+        """
+        
+        w = Window(name=name, area=area, 
+                      number=number,
+                      r = r,
+                      thermal_conductivity=thermal_conductivity,
+                      thermal_resistance_inside=thermal_resistance_inside,
+                      thermal_resistance_outside=thermal_resistance_outside
+                      )
+        w.run()
+        
+        self.components.append(w)
 
     def add_buffer(self, capacity_liters: float, initial_temp=20.0, min_temp=15.0, max_temp=80.0):
 
@@ -354,10 +468,11 @@ class House:
 
         for component in self.components:
 
-            U_component = component['structure'].calculate_u_value()
-            A_component = component['area']
+            U_component = component.U
+            A_component = component.area
+            r_component = component.r
 
-            transmission_heat_loss[component['name']] = (self.Tinner - airtemp).mul(U_component).mul(A_component)
+            transmission_heat_loss[component.name] = (self.Tinner - airtemp).mul(U_component).mul(A_component).mul(r_component)
 
         self.transmission_heat_loss_ts = pd.concat(transmission_heat_loss).unstack(level=0)
 
@@ -388,7 +503,7 @@ class House:
 
         self._define_heating_system()
 
-        #self._calc_annual_transmission_heat_loss_timeseries()
+        self._calc_annual_transmission_heat_loss_timeseries()
         #self._calc_energy_need()
 
 
