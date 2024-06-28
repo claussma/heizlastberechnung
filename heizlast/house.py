@@ -190,7 +190,7 @@ class Wall:
 
         for i, l in enumerate(self.layers):
 
-            selLayer = self.layers[0:i]
+            selLayer = self.layers[0:i+1]
             sumR = self.thermal_resistance_inside + sum([l.R for l in selLayer ])
 
             theta_i = Ti - q*sumR
@@ -239,6 +239,19 @@ class Wall:
 
         plt.show()
 
+class Roof(Wall):
+    def __init__(self, name, area, 
+                 thermal_resistance_inside:float = 0.13, thermal_resistance_outside:float = 0.04):
+        """
+        Initialisiert eine Wand mit einer Liste von Schichten.
+        """
+        self.layers = []
+        self.name = name
+        self.area = area
+
+        self.thermal_resistance_inside = thermal_resistance_inside
+        self.thermal_resistance_outside = thermal_resistance_outside
+
 class House:
     def __init__(self, 
                  climate_data: pd.DataFrame,
@@ -277,8 +290,8 @@ class House:
         print(self.components)
     
     def add_roof(self, area: float, layers_info: list, 
-                thermal_resistance_inside:float = 0.1, 
-                thermal_resistance_outside:float = 0.1):
+                thermal_resistance_inside:float = 0.13, 
+                thermal_resistance_outside:float = 0.04):
         """
         Fügt dem Haus eine Wand hinzu.
         :param area: Fläche der Wand in Quadratmetern.
@@ -286,7 +299,7 @@ class House:
         """
         name = "Dach"
         layers = [Layer(**info) for info in layers_info]
-        roof = Wall(name=name, area=area)
+        roof = Roof(name=name, area=area)
         roof.add_layers(layers)
         roof.set_thermal_resistance_inside(thermal_resistance_inside)
         roof.set_thermal_resistance_outside(thermal_resistance_outside)
