@@ -28,7 +28,7 @@ class HeatingSystemGas(HeatingSystem):
         return energy_provided * self.efficiency
 
 class HeatingSystemSolar:
-    def __init__(self, name: str, efficiency: float, module_power_wp: float, num_modules: int,  module_area: float: 2.0):
+    def __init__(self, name: str, efficiency: float, module_power_wp: float, num_modules: int,  module_area: float = 2.0):
         """
         Initialisiert das Solarheizungssystem.
         :param name: Name des Heizungssystems.
